@@ -52,6 +52,10 @@ input{
     margin-bottom:20px;
 }
 
+.section{
+    margin-top:20px;
+}
+
 .order{
     background:#222;
     padding:15px;
@@ -62,16 +66,24 @@ input{
 .order button{
     width:100%;
     padding:10px;
-    background:gold;
     border:none;
     border-radius:8px;
     cursor:pointer;
     font-weight:bold;
+    margin-top:10px;
 }
 
-.accepted{
-    color:#4CAF50;
-    font-weight:bold;
+.acceptBtn{
+    background:gold;
+}
+
+.completeBtn{
+    background:#4CAF50;
+    color:white;
+}
+
+h2{
+    color:gold;
 }
 
 </style>
@@ -93,7 +105,25 @@ input{
         🔊 Начать смену
     </button>
 
-    <div id="orders"></div>
+    <div class="section">
+
+        <h2>
+            🚕 Свободные заказы
+        </h2>
+
+        <div id="freeOrders"></div>
+
+    </div>
+
+    <div class="section">
+
+        <h2>
+            🚖 Заказы в работе
+        </h2>
+
+        <div id="workingOrders"></div>
+
+    </div>
 
 </div>
 
@@ -115,7 +145,8 @@ const sound =
         "taxiSound"
     );
 
-let soundEnabled = false;
+let soundEnabled =
+    false;
 
 const savedName =
     localStorage.getItem(
@@ -124,19 +155,24 @@ const savedName =
 
 if(savedName){
 
-    document.getElementById(
-        "driverName"
-    ).value = savedName;
+    document
+        .getElementById(
+            "driverName"
+        )
+        .value =
+        savedName;
 
 }
 
 document
-.getElementById("enableBtn")
+.getElementById(
+    "enableBtn"
+)
 .addEventListener(
     "click",
     async () => {
 
-        const driverName =
+        const name =
             document
             .getElementById(
                 "driverName"
@@ -144,7 +180,7 @@ document
             .value
             .trim();
 
-        if(!driverName){
+        if(!name){
 
             alert(
                 "Введите ник"
@@ -156,7 +192,7 @@ document
 
         localStorage.setItem(
             "driverName",
-            driverName
+            name
         );
 
         try{
@@ -167,7 +203,8 @@ document
 
             sound.currentTime = 0;
 
-            soundEnabled = true;
+            soundEnabled =
+                true;
 
             alert(
                 "Смена начата"
@@ -175,116 +212,36 @@ document
 
         }catch(err){
 
-            console.error(err);
+            console.error(
+                err
+            );
 
         }
 
     }
 );
 
-function createOrderCard(order){
+function createOrderCard(
+    order
+){
 
     const div =
         document.createElement(
             "div"
         );
 
-    div.className = "order";
+    div.className =
+        "order";
 
     div.id =
         `order-${order.id}`;
 
-    div.innerHTML = `
-        <h3>
-            🚕 Заказ #${order.id}
-        </h3>
+    if(
+        order.status ===
+        "working"
+    ){
 
-        <p>
-            👤 Игрок:
-            ${order.player}
-        </p>
-
-        <p>
-            📍 Откуда:
-            ${order.from}
-        </p>
-
-        <p>
-            🎯 Куда:
-            ${order.to}
-        </p>
-
-        <p>
-            📝
-            ${order.comment || "Нет"}
-        </p>
-
-        ${
-            order.acceptedBy
-            ?
-            `
-            <p class="accepted">
-                🚖 Заказ выполняет:
-                ${order.acceptedBy}
-            </p>
-            `
-            :
-            `
-            <button
-                onclick="acceptOrder(${order.id})"
-            >
-                Принять заказ
-            </button>
-            `
-        }
-    `;
-
-    return div;
-
-}
-
-socket.on(
-    "newOrder",
-    order => {
-
-        if(soundEnabled){
-
-            sound.currentTime = 0;
-
-            sound.play()
-                .catch(
-                    console.error
-                );
-
-        }
-
-        const card =
-            createOrderCard(
-                order
-            );
-
-        document
-            .getElementById(
-                "orders"
-            )
-            .prepend(card);
-
-    }
-);
-
-socket.on(
-    "orderAccepted",
-    order => {
-
-        const card =
-            document.getElementById(
-                `order-${order.id}`
-            );
-
-        if(!card)
-            return;
-
-        card.innerHTML = `
+        div.innerHTML = `
             <h3>
                 🚕 Заказ #${order.id}
             </h3>
@@ -305,30 +262,148 @@ socket.on(
             </p>
 
             <p>
-                📝
-                ${order.comment || "Нет"}
-            </p>
-
-            <p class="accepted">
-                🚖 Заказ выполняет:
+                🚖 Выполняет:
                 ${order.acceptedBy}
             </p>
+
+            <button
+                class="completeBtn"
+                onclick="
+                completeOrder(
+                    ${order.id}
+                )"
+            >
+                ✅ Выполнено
+            </button>
         `;
+
+    }else{
+
+        div.innerHTML = `
+            <h3>
+                🚕 Заказ #${order.id}
+            </h3>
+
+            <p>
+                👤 Игрок:
+                ${order.player}
+            </p>
+
+            <p>
+                📍 Откуда:
+                ${order.from}
+            </p>
+
+            <p>
+                🎯 Куда:
+                ${order.to}
+            </p>
+
+            <button
+                class="acceptBtn"
+                onclick="
+                acceptOrder(
+                    ${order.id}
+                )"
+            >
+                Принять заказ
+            </button>
+        `;
+
+    }
+
+    return div;
+
+}
+
+socket.on(
+    "newOrder",
+    order => {
+
+        if(
+            soundEnabled
+        ){
+
+            sound.currentTime =
+                0;
+
+            sound.play()
+                .catch(
+                    console.error
+                );
+
+        }
+
+        document
+            .getElementById(
+                "freeOrders"
+            )
+            .prepend(
+                createOrderCard(
+                    order
+                )
+            );
 
     }
 );
 
-async function acceptOrder(id){
+socket.on(
+    "orderAccepted",
+    order => {
+
+        const old =
+            document
+            .getElementById(
+                `order-${order.id}`
+            );
+
+        if(old)
+            old.remove();
+
+        document
+            .getElementById(
+                "workingOrders"
+            )
+            .prepend(
+                createOrderCard(
+                    order
+                )
+            );
+
+    }
+);
+
+socket.on(
+    "orderCompleted",
+    data => {
+
+        const card =
+            document
+            .getElementById(
+                `order-${data.id}`
+            );
+
+        if(card)
+            card.remove();
+
+    }
+);
+
+async function acceptOrder(
+    id
+){
 
     const driver =
         localStorage.getItem(
             "driverName"
         );
 
-    if(!driver){
+    if(
+        !driver
+    ){
 
         alert(
-            "Введите ник и начните смену"
+            "Введите ник"
         );
 
         return;
@@ -357,6 +432,31 @@ async function acceptOrder(id){
 
 }
 
+async function completeOrder(
+    id
+){
+
+    await fetch(
+        "/complete-order",
+        {
+            method:"POST",
+
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+
+            body:JSON.stringify({
+
+                id
+
+            })
+
+        }
+    );
+
+}
+
 async function loadOrders(){
 
     const response =
@@ -372,15 +472,34 @@ async function loadOrders(){
     orders.forEach(
         order => {
 
-            document
-                .getElementById(
-                    "orders"
-                )
-                .appendChild(
-                    createOrderCard(
-                        order
+            if(
+                order.status ===
+                "working"
+            ){
+
+                document
+                    .getElementById(
+                        "workingOrders"
                     )
-                );
+                    .appendChild(
+                        createOrderCard(
+                            order
+                        )
+                    );
+
+            }else{
+
+                document
+                    .getElementById(
+                        "freeOrders"
+                    )
+                    .appendChild(
+                        createOrderCard(
+                            order
+                        )
+                    );
+
+            }
 
         }
     );
