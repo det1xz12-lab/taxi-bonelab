@@ -6,6 +6,7 @@
 <title>Russian RP Taxi</title>
 
 <style>
+
 body{
     background:#111;
     color:white;
@@ -27,6 +28,17 @@ h1{
 
 .container{
     padding:20px;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:#222;
+    color:white;
+    margin-bottom:15px;
+    box-sizing:border-box;
 }
 
 #enableBtn{
@@ -56,6 +68,12 @@ h1{
     cursor:pointer;
     font-weight:bold;
 }
+
+.accepted{
+    color:#4CAF50;
+    font-weight:bold;
+}
+
 </style>
 </head>
 <body>
@@ -66,6 +84,11 @@ h1{
 
 <div class="container">
 
+    <input
+        id="driverName"
+        placeholder="Введите ваш ник"
+    >
+
     <button id="enableBtn">
         🔊 Начать смену
     </button>
@@ -75,7 +98,10 @@ h1{
 </div>
 
 <audio id="taxiSound">
-    <source src="/sounds/jandeks-zakaz.mp3" type="audio/mpeg">
+    <source
+        src="/sounds/jandeks-zakaz.mp3"
+        type="audio/mpeg"
+    >
 </audio>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -85,76 +111,283 @@ h1{
 const socket = io();
 
 const sound =
-    document.getElementById("taxiSound");
+    document.getElementById(
+        "taxiSound"
+    );
 
 let soundEnabled = false;
 
+const savedName =
+    localStorage.getItem(
+        "driverName"
+    );
+
+if(savedName){
+
+    document.getElementById(
+        "driverName"
+    ).value = savedName;
+
+}
+
 document
 .getElementById("enableBtn")
-.addEventListener("click", async () => {
+.addEventListener(
+    "click",
+    async () => {
 
-    try{
+        const driverName =
+            document
+            .getElementById(
+                "driverName"
+            )
+            .value
+            .trim();
 
-        await sound.play();
+        if(!driverName){
 
-        sound.pause();
+            alert(
+                "Введите ник"
+            );
 
-        sound.currentTime = 0;
+            return;
 
-        soundEnabled = true;
+        }
 
-        alert("Смена начата");
+        localStorage.setItem(
+            "driverName",
+            driverName
+        );
 
-    }catch(err){
+        try{
 
-        console.error(err);
+            await sound.play();
+
+            sound.pause();
+
+            sound.currentTime = 0;
+
+            soundEnabled = true;
+
+            alert(
+                "Смена начата"
+            );
+
+        }catch(err){
+
+            console.error(err);
+
+        }
 
     }
+);
 
-});
-
-socket.on("newOrder", order => {
-
-    if(soundEnabled){
-
-        sound.currentTime = 0;
-
-        sound.play().catch(console.error);
-
-    }
+function createOrderCard(order){
 
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     div.className = "order";
 
+    div.id =
+        `order-${order.id}`;
+
     div.innerHTML = `
-        <h3>🚕 Заказ #${order.id}</h3>
+        <h3>
+            🚕 Заказ #${order.id}
+        </h3>
 
-        <p>👤 Игрок: ${order.player}</p>
+        <p>
+            👤 Игрок:
+            ${order.player}
+        </p>
 
-        <p>📍 Откуда: ${order.from}</p>
+        <p>
+            📍 Откуда:
+            ${order.from}
+        </p>
 
-        <p>🎯 Куда: ${order.to}</p>
+        <p>
+            🎯 Куда:
+            ${order.to}
+        </p>
 
-        <p>📝 ${order.comment || "Нет"}</p>
+        <p>
+            📝
+            ${order.comment || "Нет"}
+        </p>
 
-        <button onclick="acceptOrder(${order.id})">
-            Принять заказ
-        </button>
+        ${
+            order.acceptedBy
+            ?
+            `
+            <p class="accepted">
+                🚖 Заказ выполняет:
+                ${order.acceptedBy}
+            </p>
+            `
+            :
+            `
+            <button
+                onclick="acceptOrder(${order.id})"
+            >
+                Принять заказ
+            </button>
+            `
+        }
     `;
 
-    document
-        .getElementById("orders")
-        .prepend(div);
+    return div;
 
-});
+}
+
+socket.on(
+    "newOrder",
+    order => {
+
+        if(soundEnabled){
+
+            sound.currentTime = 0;
+
+            sound.play()
+                .catch(
+                    console.error
+                );
+
+        }
+
+        const card =
+            createOrderCard(
+                order
+            );
+
+        document
+            .getElementById(
+                "orders"
+            )
+            .prepend(card);
+
+    }
+);
+
+socket.on(
+    "orderAccepted",
+    order => {
+
+        const card =
+            document.getElementById(
+                `order-${order.id}`
+            );
+
+        if(!card)
+            return;
+
+        card.innerHTML = `
+            <h3>
+                🚕 Заказ #${order.id}
+            </h3>
+
+            <p>
+                👤 Игрок:
+                ${order.player}
+            </p>
+
+            <p>
+                📍 Откуда:
+                ${order.from}
+            </p>
+
+            <p>
+                🎯 Куда:
+                ${order.to}
+            </p>
+
+            <p>
+                📝
+                ${order.comment || "Нет"}
+            </p>
+
+            <p class="accepted">
+                🚖 Заказ выполняет:
+                ${order.acceptedBy}
+            </p>
+        `;
+
+    }
+);
 
 async function acceptOrder(id){
 
-    alert("Заказ принят #" + id);
+    const driver =
+        localStorage.getItem(
+            "driverName"
+        );
+
+    if(!driver){
+
+        alert(
+            "Введите ник и начните смену"
+        );
+
+        return;
+
+    }
+
+    await fetch(
+        "/accept-order",
+        {
+            method:"POST",
+
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+
+            body:JSON.stringify({
+
+                id,
+                driver
+
+            })
+
+        }
+    );
 
 }
+
+async function loadOrders(){
+
+    const response =
+        await fetch(
+            "/orders"
+        );
+
+    const orders =
+        await response.json();
+
+    orders.reverse();
+
+    orders.forEach(
+        order => {
+
+            document
+                .getElementById(
+                    "orders"
+                )
+                .appendChild(
+                    createOrderCard(
+                        order
+                    )
+                );
+
+        }
+    );
+
+}
+
+loadOrders();
 
 </script>
 
