@@ -1,5 +1,6 @@
 const express = require("express");
 const http = require("http");
+const fs = require("fs");
 const { Server } = require("socket.io");
 
 const app = express();
@@ -19,30 +20,110 @@ app.use(
     )
 );
 
+const ORDERS_FILE =
+    "./orders.json";
+
+function loadOrders() {
+
+    try {
+
+        if (
+            !fs.existsSync(
+                ORDERS_FILE
+            )
+        ) {
+
+            fs.writeFileSync(
+                ORDERS_FILE,
+                "[]"
+            );
+
+        }
+
+        return JSON.parse(
+            fs.readFileSync(
+                ORDERS_FILE,
+                "utf8"
+            )
+        );
+
+    } catch {
+
+        return [];
+
+    }
+
+}
+
+function saveOrders() {
+
+    fs.writeFileSync(
+        ORDERS_FILE,
+        JSON.stringify(
+            orders,
+            null,
+            2
+        )
+    );
+
+}
+
+let orders =
+    loadOrders();
+
 let orderId = 1;
 
-let orders = [];
+if (
+    orders.length > 0
+) {
+
+    orderId =
+        Math.max(
+            ...orders.map(
+                o => o.id
+            )
+        ) + 1;
+
+}
 
 app.post(
     "/new-order",
     (req, res) => {
 
         const order = {
-            id: orderId++,
+
+            id:
+                orderId++,
+
             player:
                 req.body.player,
+
             from:
                 req.body.from,
+
             to:
                 req.body.to,
+
             comment:
-                req.body.comment || "",
-            acceptedBy: null,
+                req.body.comment ||
+                "",
+
+            acceptedBy:
+                null,
+
+            status:
+                "free",
+
             createdAt:
                 Date.now()
+
         };
 
-        orders.push(order);
+        orders.push(
+            order
+        );
+
+        saveOrders();
 
         io.emit(
             "newOrder",
@@ -70,28 +151,27 @@ app.post(
                 o => o.id == id
             );
 
-        if (!order) {
+        if (
+            !order
+        ) {
 
             return res
                 .status(404)
                 .json({
-                    success: false,
-                    message:
-                        "Заказ не найден"
+                    success: false
                 });
 
         }
 
         if (
-            order.acceptedBy
+            order.status !==
+            "free"
         ) {
 
             return res
                 .status(400)
                 .json({
-                    success: false,
-                    message:
-                        "Заказ уже принят"
+                    success: false
                 });
 
         }
@@ -99,9 +179,60 @@ app.post(
         order.acceptedBy =
             driver;
 
+        order.status =
+            "working";
+
+        saveOrders();
+
         io.emit(
             "orderAccepted",
             order
+        );
+
+        res.json({
+            success: true
+        });
+
+    }
+);
+
+app.post(
+    "/complete-order",
+    (req, res) => {
+
+        const {
+            id
+        } = req.body;
+
+        const order =
+            orders.find(
+                o => o.id == id
+            );
+
+        if (
+            !order
+        ) {
+
+            return res
+                .status(404)
+                .json({
+                    success: false
+                });
+
+        }
+
+        orders =
+            orders.filter(
+                o => o.id != id
+            );
+
+        saveOrders();
+
+        io.emit(
+            "orderCompleted",
+            {
+                id
+            }
         );
 
         res.json({
@@ -127,7 +258,7 @@ io.on(
     socket => {
 
         console.log(
-            "🔌 Подключился клиент:",
+            "🔌 Подключился:",
             socket.id
         );
 
