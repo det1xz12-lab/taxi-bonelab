@@ -20,44 +20,53 @@ const client = new Client({
     ]
 });
 
-client.once(Events.ClientReady, async () => {
-
-    console.log(`✅ Бот запущен как ${client.user.tag}`);
-
-    const commands = [
-        new SlashCommandBuilder()
-            .setName("такси")
-            .setDescription("Вызвать RP такси")
-            .toJSON()
-    ];
-
-    const rest = new REST({
-        version: "10"
-    }).setToken(process.env.TOKEN);
-
-    try {
-
-        await rest.put(
-            Routes.applicationGuildCommands(
-                process.env.CLIENT_ID,
-                process.env.GUILD_ID
-            ),
-            {
-                body: commands
-            }
-        );
+client.once(
+    Events.ClientReady,
+    async () => {
 
         console.log(
-            "✅ Команда /такси зарегистрирована"
+            `✅ Бот запущен как ${client.user.tag}`
         );
 
-    } catch (err) {
+        const commands = [
+            new SlashCommandBuilder()
+                .setName("такси")
+                .setDescription(
+                    "Вызвать RP такси"
+                )
+                .toJSON()
+        ];
 
-        console.error(err);
+        const rest = new REST({
+            version: "10"
+        }).setToken(
+            process.env.TOKEN
+        );
+
+        try {
+
+            await rest.put(
+                Routes.applicationGuildCommands(
+                    process.env.CLIENT_ID,
+                    process.env.GUILD_ID
+                ),
+                {
+                    body: commands
+                }
+            );
+
+            console.log(
+                "✅ Команда /такси зарегистрирована"
+            );
+
+        } catch (err) {
+
+            console.error(err);
+
+        }
 
     }
-
-});
+);
 
 client.on(
     Events.InteractionCreate,
@@ -70,46 +79,75 @@ client.on(
 
             const modal =
                 new ModalBuilder()
-                    .setCustomId("taxi_modal")
-                    .setTitle("🚕 Вызов такси");
+                    .setCustomId(
+                        "taxi_modal"
+                    )
+                    .setTitle(
+                        "🚕 Вызов такси"
+                    );
 
             const nickname =
                 new TextInputBuilder()
-                    .setCustomId("nickname")
-                    .setLabel("Ваш ник в Bonelab")
+                    .setCustomId(
+                        "nickname"
+                    )
+                    .setLabel(
+                        "Ваш ник в Bonelab"
+                    )
                     .setStyle(
                         TextInputStyle.Short
                     )
-                    .setRequired(true);
+                    .setRequired(
+                        true
+                    );
 
             const from =
                 new TextInputBuilder()
-                    .setCustomId("from")
-                    .setLabel("Откуда забрать?")
+                    .setCustomId(
+                        "from"
+                    )
+                    .setLabel(
+                        "Откуда забрать?"
+                    )
                     .setStyle(
                         TextInputStyle.Short
                     )
-                    .setRequired(true);
+                    .setRequired(
+                        true
+                    );
 
             const to =
                 new TextInputBuilder()
-                    .setCustomId("to")
-                    .setLabel("Куда отвезти?")
+                    .setCustomId(
+                        "to"
+                    )
+                    .setLabel(
+                        "Куда отвезти?"
+                    )
                     .setStyle(
                         TextInputStyle.Short
                     )
-                    .setRequired(true);
+                    .setRequired(
+                        true
+                    );
 
             const comment =
                 new TextInputBuilder()
-                    .setCustomId("comment")
-                    .setLabel("Комментарий")
+                    .setCustomId(
+                        "comment"
+                    )
+                    .setLabel(
+                        "Комментарий"
+                    )
                     .setStyle(
                         TextInputStyle.Paragraph
                     )
-                    .setRequired(false);
+                    .setRequired(
+                        false
+                    );
 
             modal.addComponents(
+
                 new ActionRowBuilder()
                     .addComponents(
                         nickname
@@ -129,6 +167,7 @@ client.on(
                     .addComponents(
                         comment
                     )
+
             );
 
             await interaction.showModal(
@@ -136,12 +175,13 @@ client.on(
             );
 
             return;
+
         }
 
         if (
             interaction.isModalSubmit() &&
             interaction.customId ===
-                "taxi_modal"
+            "taxi_modal"
         ) {
 
             const nickname =
@@ -167,7 +207,7 @@ client.on(
             try {
 
                 await axios.post(
-                    "http://localhost:3000/new-order",
+                    "https://taxi-bonelab.onrender.com/new-order",
                     {
                         player:
                             nickname,
