@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Russian RP Taxi</title>
+
+<style>
+body{
+    background:#111;
+    color:white;
+    font-family:Arial,sans-serif;
+    margin:0;
+}
+
+header{
+    background:#222;
+    padding:20px;
+    text-align:center;
+    border-bottom:3px solid gold;
+}
+
+h1{
+    margin:0;
+    color:gold;
+}
+
+.container{
+    padding:20px;
+}
+
+#enableBtn{
+    width:100%;
+    padding:15px;
+    font-size:18px;
+    background:gold;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    margin-bottom:20px;
+}
+
+.order{
+    background:#222;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
+}
+
+.order button{
+    width:100%;
+    padding:10px;
+    background:gold;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<header>
+    <h1>🚕 Russian RP Taxi</h1>
+</header>
+
+<div class="container">
+
+    <button id="enableBtn">
+        🔊 Начать смену
+    </button>
+
+    <div id="orders"></div>
+
+</div>
+
+<audio id="taxiSound">
+    <source src="/sounds/jandeks-zakaz.mp3" type="audio/mpeg">
+</audio>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const socket = io();
+
+const sound =
+    document.getElementById("taxiSound");
+
+let soundEnabled = false;
+
+document
+.getElementById("enableBtn")
+.addEventListener("click", async () => {
+
+    try{
+
+        await sound.play();
+
+        sound.pause();
+
+        sound.currentTime = 0;
+
+        soundEnabled = true;
+
+        alert("Смена начата");
+
+    }catch(err){
+
+        console.error(err);
+
+    }
+
+});
+
+socket.on("newOrder", order => {
+
+    if(soundEnabled){
+
+        sound.currentTime = 0;
+
+        sound.play().catch(console.error);
+
+    }
+
+    const div =
+        document.createElement("div");
+
+    div.className = "order";
+
+    div.innerHTML = `
+        <h3>🚕 Заказ #${order.id}</h3>
+
+        <p>👤 Игрок: ${order.player}</p>
+
+        <p>📍 Откуда: ${order.from}</p>
+
+        <p>🎯 Куда: ${order.to}</p>
+
+        <p>📝 ${order.comment || "Нет"}</p>
+
+        <button onclick="acceptOrder(${order.id})">
+            Принять заказ
+        </button>
+    `;
+
+    document
+        .getElementById("orders")
+        .prepend(div);
+
+});
+
+async function acceptOrder(id){
+
+    alert("Заказ принят #" + id);
+
+}
+
+</script>
+
+</body>
+</html>
